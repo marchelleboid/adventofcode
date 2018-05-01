@@ -1,0 +1,73 @@
+cpy a b
+dec b
+cpy a d
+cpy 0 a
+cpy b c
+inc a
+dec c
+jnz c -2
+dec d
+jnz d -5
+dec b
+cpy b c
+cpy c d
+dec d
+inc c
+jnz d -2
+tgl c
+cpy -16 c
+jnz 1 c
+cpy 78 c
+jnz 99 d
+inc a
+inc d
+jnz d -2
+inc c
+jnz c -5
+
+a = 12
+b = a   // (b = 12)
+b--     // (b = 11)
+while true
+  d = a   // (d = 121)
+  a = 0
+  do      // (121 times)
+    c = b // (c = 10)
+    do    // (10 times)
+      a++
+      c--
+    while c != 0
+    d--
+  while d != 0
+
+  (a = 1210)
+  b--    // (b = 9)
+  c = b  // (c = 9)
+  d = c  // (d = 9)
+  do     // (9 times)
+    d--
+    c++
+  while d != 0
+  (c = 18)
+  c = -16
+
+12! = 479001600 in a
+
+cpy 78 c
+cpy 99 d
+inc a
+dec d
+jnz d -2
+dec c
+jnz c -5
+
+c = 78
+d = 99
+do 78 times
+  do 99 times
+    a++ (7722 times)
+    d--
+  while d != 0
+while c != 0
+
+479001600 + 7722
