@@ -1,0 +1,9 @@
+(executable
+ (name      a)
+ (modules   a)
+ (libraries core re))
+
+(executable
+ (name      b)
+ (modules   b)
+ (libraries core re))
