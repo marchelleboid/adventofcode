@@ -1,3 +1,6 @@
 *.exe
 *.o
 *.hi
+_build
+.merlin
+dune-project
