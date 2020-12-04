@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "AdventOfCode2020": {
+      "commandName": "Project",
+      "commandLineArgs": "4b",
+      "workingDirectory": "C:\\Users\\Marc\\source\\repos\\AdventOfCode\\AdventOfCode2020"
+    }
+  }
+}
