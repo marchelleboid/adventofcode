@@ -4,3 +4,6 @@
 _build
 .merlin
 dune-project
+.vs
+bin
+obj
