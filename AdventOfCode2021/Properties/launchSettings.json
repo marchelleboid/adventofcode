@@ -2,7 +2,7 @@
   "profiles": {
     "AdventOfCode2021": {
       "commandName": "Project",
-      "commandLineArgs": "1b",
+      "commandLineArgs": "2b",
       "workingDirectory": "C:\\Users\\Marc\\source\\repos\\adventofcode\\AdventOfCode2021"
     }
   }
