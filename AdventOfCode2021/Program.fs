@@ -39,5 +39,7 @@ let main argv =
     | "17b" -> Day17b.solver
     | "18a" -> Day18a.solver
     | "18b" -> Day18b.solver
+    | "20a" -> Day20a.solver
+    | "20b" -> Day20b.solver
     | _ -> printfn "Oops!"
     0
