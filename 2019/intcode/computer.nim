@@ -1,134 +1,157 @@
 import strformat
 import strutils
+import tables
 
 type
     Instruction = object
         opCode: int
-        firstImmediate: bool
-        secondImmediate: bool
-        thirdImmediate: bool
+        firstMode: char
+        secondMode: char
+        thirdMode: char
 
 proc initInstruction(instruction: int): Instruction =
     let instructionString = $instruction
     var opCode = ($instructionString[^1]).parseInt
-    var firstImmediate, secondImmediate, thirdImmediate = false
+    var firstMode, secondMode, thirdMode = '0'
     case instructionString.len:
         of 5:
-            firstImmediate = instructionString[2] == '1'
-            secondImmediate = instructionString[1] == '1'
-            thirdImmediate = instructionString[0] == '1'
+            firstMode = instructionString[2]
+            secondMode = instructionString[1]
+            thirdMode = instructionString[0]
             opCode = instructionString[^2 .. ^1].parseInt
         of 4:
-            firstImmediate = instructionString[1] == '1'
-            secondImmediate = instructionString[0] == '1'
+            firstMode = instructionString[1]
+            secondMode = instructionString[0]
             opCode = instructionString[^2 .. ^1].parseInt
         of 3:
-            firstImmediate = instructionString[0] == '1'
+            firstMode = instructionString[0]
             opCode = instructionString[^2 .. ^1].parseInt
         of 2:
             opCode = instructionString[^2 .. ^1].parseInt
         else: discard
     Instruction(
         opCode: opCode,
-        firstImmediate: firstImmediate,
-        secondImmediate: secondImmediate,
-        thirdImmediate: thirdImmediate)
+        firstMode: firstMode,
+        secondMode: secondMode,
+        thirdMode: thirdMode)
 
 type 
     IntCodeComputer* = object
         index: int
-        memory: seq[int]
+        memory: Table[int, int]
         inputFunction: proc(): int
         outputFunction: proc(output: int)
+        relativeBase: int
+
+proc initMemory(memory: seq[int]): Table[int, int] =
+    for i, val in memory:
+        result[i] = val
 
 proc initComputer*(memory: seq[int]): IntCodeComputer =
     result.index = 0
-    result.memory = memory
+    result.memory = initMemory(memory)
+    result.relativeBase = 0
 
 proc initComputer*(memory: seq[int], inputFunction: proc(): int, outputFunction: proc(output: int)): IntCodeComputer =
     result.index = 0
-    result.memory = memory
+    result.memory = initMemory(memory)
     result.inputFunction = inputFunction
     result.outputFunction = outputFunction
+    result.relativeBase = 0
 
 proc setNounAndVerb*(self: var IntCodeComputer, noun, verb: int) =
     self.memory[1] = noun
     self.memory[2] = verb
 
 proc getMemoryValue*(self: IntCodeComputer, address: int): int =
-    self.memory[address]
+    self.memory.getOrDefault(address)
 
-proc getValue(self: IntCodeComputer, immediate: bool, offset: int): int =
-    var value = self.memory[self.index + offset]
-    if not immediate:
-        value = self.memory[value]
+proc setMemoryValue(self: var IntCodeComputer, address: int, value: int, mode: char) =
+    if mode == '0':
+        self.memory[address] = value
+    elif mode == '2':
+        self.memory[self.relativeBase + address] = value
+
+proc getValue(self: IntCodeComputer, mode: char, offset: int): int =
+    var value = self.memory.getOrDefault(self.index + offset)
+    if mode == '0':
+        value = self.memory.getOrDefault(value)
+    elif mode == '2':
+        value = self.memory.getOrDefault(self.relativeBase + value)
     return value
 
-proc handleOperation(self: var IntCodeComputer, firstImmediate: bool, secondImmediate: bool,
+proc handleOperation(self: var IntCodeComputer, firstMode, secondMode, thirdMode: char,
                      operation: proc(x, y: int): int) =
-    let value1 = self.getValue(firstImmediate, 1)
-    let value2 = self.getValue(secondImmediate, 2)
+    let value1 = self.getValue(firstMode, 1)
+    let value2 = self.getValue(secondMode, 2)
 
     let address = self.memory[self.index + 3]
-    self.memory[address] = operation(value1, value2)
+    self.setMemoryValue(address, operation(value1, value2), thirdMode)
     self.index += 4
 
-proc handleInput(self: var IntCodeComputer) =
+proc handleInput(self: var IntCodeComputer, firstMode: char) =
     let address = self.memory[self.index + 1]
-    self.memory[address] = self.inputFunction()
+    self.setMemoryValue(address, self.inputFunction(), firstMode)
     self.index += 2
 
-proc handleOutput(self: var IntCodeComputer, firstImmediate: bool) =
-    let output = self.getValue(firstImmediate, 1)
+proc handleOutput(self: var IntCodeComputer, firstMode: char) =
+    let output = self.getValue(firstMode, 1)
     self.outputFunction(output)
     self.index += 2
 
-proc handleJump(self: var IntCodeComputer, firstImmediate: bool, secondImmediate: bool,
+proc handleJump(self: var IntCodeComputer, firstMode: char, secondMode: char,
                 comparison: proc(x: int): bool) =
-    let value1 = self.getValue(firstImmediate, 1)
-    let value2 = self.getValue(secondImmediate, 2)
+    let value1 = self.getValue(firstMode, 1)
+    let value2 = self.getValue(secondMode, 2)
     if comparison(value1):
         self.index = value2
     else:
         self.index += 3
 
-proc handleComparison(self: var IntCodeComputer, firstImmediate: bool, secondImmediate: bool,
+proc handleComparison(self: var IntCodeComputer, firstMode, secondMode, thirdMode: char,
                       comparison: proc(x, y: int): bool) =
-    let value1 = self.getValue(firstImmediate, 1)
-    let value2 = self.getValue(secondImmediate, 2)
+    let value1 = self.getValue(firstMode, 1)
+    let value2 = self.getValue(secondMode, 2)
     let address = self.memory[self.index + 3]
     if comparison(value1, value2):
-        self.memory[address] = 1
+        self.setMemoryValue(address, 1, thirdMode)
     else:
-        self.memory[address] = 0
+        self.setMemoryValue(address, 0, thirdMode)
     self.index += 4
+
+proc handleRelativeBaseUpdate(self: var IntCodeComputer, firstMode: char) =
+    let value = self.getValue(firstMode, 1)
+    self.relativeBase = self.relativeBase + value
+    self.index += 2
 
 proc runProgram*(self: var IntCodeComputer) =
     while true:
         let instruction = initInstruction(self.memory[self.index])
         case instruction.opCode:
             of 1: # add
-                self.handleOperation(instruction.firstImmediate, instruction.secondImmediate, 
+                self.handleOperation(instruction.firstMode, instruction.secondMode, instruction.thirdMode,
                                      proc (x, y: int): int = x + y)
             of 2: # multiply
-                self.handleOperation(instruction.firstImmediate, instruction.secondImmediate, 
+                self.handleOperation(instruction.firstMode, instruction.secondMode, instruction.thirdMode,
                                      proc (x, y: int): int = x * y)
             of 3: # input
-                self.handleInput()
+                self.handleInput(instruction.firstMode)
             of 4: # output
-                self.handleOutput(instruction.firstImmediate)
+                self.handleOutput(instruction.firstMode)
             of 5: # jump if true
-                self.handleJump(instruction.firstImmediate, instruction.secondImmediate,
+                self.handleJump(instruction.firstMode, instruction.secondMode,
                                 proc (x: int): bool = x != 0)
             of 6: # jump if false
-                self.handleJump(instruction.firstImmediate, instruction.secondImmediate,
+                self.handleJump(instruction.firstMode, instruction.secondMode,
                                 proc (x: int): bool = x == 0)
             of 7: # less than
-                self.handleComparison(instruction.firstImmediate, instruction.secondImmediate,
+                self.handleComparison(instruction.firstMode, instruction.secondMode, instruction.thirdMode,
                                       proc (x, y: int): bool = x < y)
             of 8: # equals
-                self.handleComparison(instruction.firstImmediate, instruction.secondImmediate,
+                self.handleComparison(instruction.firstMode, instruction.secondMode, instruction.thirdMode,
                                       proc (x, y: int): bool = x == y)
+            of 9: # update relative base
+                self.handleRelativeBaseUpdate(instruction.firstMode)
             of 99: # halt
                 break
             else:
