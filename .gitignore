@@ -7,3 +7,6 @@ dune-project
 .vs
 bin
 obj
+input
+input.txt
+day*.txt
