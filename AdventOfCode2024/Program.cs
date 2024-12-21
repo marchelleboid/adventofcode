@@ -11,6 +11,7 @@ using AdventOfCode2024.Day17;
 using AdventOfCode2024.Day18;
 using AdventOfCode2024.Day19;
 using AdventOfCode2024.Day2;
+using AdventOfCode2024.Day20;
 using AdventOfCode2024.Day3;
 using AdventOfCode2024.Day4;
 using AdventOfCode2024.Day5;
@@ -59,6 +60,8 @@ ISolver solver = args[0] switch
     "18b" => new Day18B(),
     "19a" => new Day19A(),
     "19b" => new Day19B(),
+    "20a" => new Day20A(),
+    "20b" => new Day20B(),
     _ => throw new ArgumentException($"Unknown day: {args[0]}"),
 };
 
